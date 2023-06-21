@@ -1,0 +1,7 @@
+Date,PredictFor_Date,Result,Predict,Score_R,Actual
+2023-05-8,2023-05-15,,9,0.0,9
+2023-05-15,2023-05-22,,9,0.0,9
+2023-05-22,2023-05-29,,9,0.0,9
+2023-05-29,2023-06-05,# Approximately 80.0% of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,80.0,1
+2023-06-05,2023-06-12,# All of the news articles for the week forecasted an upward movement for the upcoming week. :chart_with_upwards_trend:,1,100.0,1
+2023-06-12,2023-06-19,## Approximately 80.0% of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,80.0,-1
