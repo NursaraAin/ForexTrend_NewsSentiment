@@ -20,9 +20,9 @@ import textwrap
 # nltk.download('stopwords')
 # nltk.download('wordnet')
 
-
 ##CHANGE FOLDER###
-lda = joblib.load("C:/Users/nursa/source/repos/NewsScraping/linear_disc_analysis.joblib")
+lda = joblib.load("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/linear_disc_analysis.joblib")
+# rf = joblib.load("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/random_forest.joblib")
 current_date = datetime.now()
 
 def calculate4Price(rate_df):
@@ -114,7 +114,7 @@ def nltk_textblob_Sentiment(news_df):
   news_df['Compound'] = compound_score
   return news_df
 
-def getNews():
+def getNews(monday_str,prev_monday_str):
     countries={'malaysia','united states'}
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0'}
     news = []
@@ -131,13 +131,15 @@ def getNews():
     news = nltk_textblob_Sentiment(rakeKeywords(processText(news)))
 
     news['Date'] = pd.to_datetime(news['Date'], format='%Y-%m-%dT%H:%M:%S')
-    # news['Date'] = news['Date'].dt.strftime('%d/%m/%Y')
-    # news['Date'] = pd.to_datetime(news['Date'], format='%d/%m/%Y')
-
+    news['Date'] = news['Date'].dt.strftime('%Y-%m-%d')
+    news['Date'] = pd.to_datetime(news['Date'], format='%Y-%m-%d')
+    
+    pos,neg = countNews(news)
+    
     average_sentiment = news.groupby(pd.Grouper(key='Date', freq='D')).mean(numeric_only=True)[['Polarity', 'Compound', 'importance']].dropna()
     average_sentiment['Date'] = average_sentiment.index
-    average_sentiment = average_sentiment.reset_index(drop=True)
-    return average_sentiment
+    news = average_sentiment.reset_index(drop=True)
+    return news,pos,neg
 
 def getForex():
     forex = yf.download("USDMYR=X", start="2013-01-01", end=current_date)
@@ -155,29 +157,23 @@ def getResult(array):
       
     total_elements = array.size  # Total number of elements in the array
     
-    percentage_0 = (count_0 / total_elements) * 100
-    percentage_1 = (count_1 / total_elements) * 100
-    
     if count_0 > count_1:
         predict = 0
-        score = round(percentage_0, 2)
         if count_0 == total_elements:
-            result = "## All of the news articles for the week forecasted a downward or no movement for the upcoming week. :chart_with_downwards_trend:"
+            result = "## All of the news articles for the week forecasteds a downward or no movement in the upcoming week. :chart_with_downwards_trend:"
         else:
-            result = f"## Approximately {score}% of the news articles for the week anticipate a downward or no movement in the upcoming week. :chart_with_downwards_trend:"
+            result = "## Most of the news article for the week anticipate a downward or no movement in the upcoming week. :chart_with_downwards_trend:"
     elif count_1 > count_0:
         predict = 1
-        score = round(percentage_1, 2)
         if count_1 == total_elements:
             result = "## All of the news articles for the week forecasted an upward movement for the upcoming week. :chart_with_upwards_trend:"
         else:
-            result = f"## Approximately {round(percentage_1, 2)}% of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:"
+            result = "## Most of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:"
     else:
         result = "## All of the news articles for the week forecasted both trends movement for upcoming week :confused:"
         predict = 0
-        score = 50.0
     
-    return result,predict,score
+    return result,predict
 
 def increase_decrease(df, col_name):
     results = []
@@ -187,8 +183,8 @@ def increase_decrease(df, col_name):
         elif df[col_name][i] > df[col_name][i+1]:
             results.append(0)
         else:
-            results.append(1)
-    results.append(1)
+            results.append(0)
+    results.append(-1)
     df["next_trend"] = results
     return df
 
@@ -198,21 +194,17 @@ def getActual(prev_monday_str,monday_str):
         prev_monday = datetime.strptime(prev_monday_str, '%Y-%m-%d') - timedelta(days=1)
         prev_monday_str = prev_monday.strftime('%Y-%m-%d')
         weeklyfx = yf.download("USDMYR=X", start=prev_monday_str, end=monday_str, interval="1wk")
-    actual = 1 if weeklyfx['Close'].iloc[0] < weeklyfx['Close'].iloc[1] else 0
+    actual = 1 if weeklyfx['Close'].iloc[-2] < weeklyfx['Close'].iloc[-1] else 0
     return actual
 
 def getNewData(monday_str,prev_monday_str):
-    news = getNews()
-       
-    news_filtered = news[(news['Date'] <= monday_str) & (news['Date'] >= prev_monday_str)]
-    
+    news,pos,neg = getNews(monday_str,prev_monday_str)    
     forex = getForex()
-    
-    df = pd.merge(news_filtered, forex, on='Date', how='inner')
+    df = pd.merge(news, forex, on='Date', how='inner')
     keep_columns=['Date','Polarity','Compound','importance','Open','High','Low','Close','RSI','EMA','%K','%D']
     df=df[keep_columns]
     df=df.fillna(0)
-    return df
+    return df,pos,neg
 
 def displayImportance(importance):
     switch = {
@@ -225,7 +217,7 @@ def displayImportance(importance):
 
 def loadApp():
 ##CHANGE FOLDER###
-    past = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/saved.csv")
+    past = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/saved.csv")
     last_date = datetime.strptime(past['PredictFor_Date'].max(),'%Y-%m-%d')
     
     if((current_date - last_date).days>=7):
@@ -234,28 +226,32 @@ def loadApp():
         monday_str = monday.strftime('%Y-%m-%d')
         prev_monday_str = prev_monday.strftime('%Y-%m-%d')
         
-        df = getNewData(monday_str,prev_monday_str)
+        df,pos,neg = getNewData(monday_str,prev_monday_str)
         X=np.array(df.drop(['Date'],axis=1))
+        # rf_predicts = rf.predict(X)
         lda_predicts=lda.predict(X)
         df['Predicted']=lda_predicts
 ##CHANGE FOLDER###
-        df.to_csv("C:/Users/nursa/source/repos/NewsScraping/daily_predict.csv", mode='a', header=False, index=False)
+        df = df[(df['Date'] < monday_str) & (df['Date'] >= prev_monday_str)]
         
-        result,predict,score = getResult(lda_predicts)
+        df.to_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/daily_predict.csv", mode='a', header=False, index=False)
+        
+        result,predict = getResult(lda_predicts)
         actual = getActual(prev_monday_str, monday_str)
         
         past.loc[past.index[-1], 'Actual'] = actual
         
         save_result = {'Date':[prev_monday_str],
                        'PredictFor_Date':[monday_str],
+                       'Pos_Percent':[pos],
+                       'Neg_Percent':[neg],
                        'Result':[result],
                        'Predict':[predict],
-                       'Score_R':[score],
                        'Actual':[-1]}
         
         past = pd.concat([past,pd.DataFrame(save_result)])
 ##CHANGE FOLDER###
-        past.to_csv("C:/Users/nursa/source/repos/NewsScraping/saved.csv",index=False)
+        past.to_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/saved.csv",index=False)
 
 def displayNews():
     countries={'malaysia','united states'}
@@ -270,24 +266,13 @@ def displayNews():
 
     news = pd.DataFrame(news)
     news = news.rename(columns={'date': 'Date'})
-
-    # monday = current_date - timedelta(days=current_date.weekday())
-    # next_monday = monday + timedelta(days=6)
-
-    # monday_str = monday.strftime('%Y-%m-%d')
-    # next_monday_str = next_monday.strftime('%Y-%m-%d')
-
-    # news['Date_Group'] = pd.to_datetime(news['Date']).dt.strftime("%Y-%m-%d")
     news = news.sort_values('Date', ascending = False)
-    # berita = news[(news['Date_Group'] >= monday_str) & (news['Date_Group'] <= next_monday_str)]
 
     st.markdown("## Current News of the Week (United States and Malaysia)")
-    #st.markdown(f"### {monday_str} until {next_monday_str}")
     st.markdown("No importance (:grey_exclamation:), "+
                 "Low importance (:exclamation:), "+
                 "Medium importance (:exclamation::exclamation:), "+
                 "High importance(:exclamation::exclamation::exclamation:)")
-    #count=1
 
     for index,article in news.iterrows():
         importance = displayImportance(article['importance'])
@@ -301,36 +286,48 @@ def displayNews():
                 st.text(textwrap.fill(description, width=90))
         else:
             truncated_text = description
-            wrapped_text = textwrap.fill(truncated_text, width=60)
+            wrapped_text = textwrap.fill(truncated_text, width=90)
             st.text(wrapped_text)       
-            
-        #st.markdown('-----')
-        #count=count+1
 
+def countNews(news):
+    total_articles = len(news)
+    positive_articles = len(news[news['Polarity'] > 0])
+    negative_articles = len(news[news['Polarity'] < 0])
+    positive_percentage = (positive_articles / total_articles) * 100
+    negative_percentage = (negative_articles / total_articles) * 100
+    
+    return positive_percentage,negative_percentage
+    
 import streamlit as st
 import plotly.graph_objects as go
 
+# Load the app
 loadApp()
-start_month = current_date - timedelta(weeks=5)
-weeklyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=current_date.strftime('%Y-%m-%d'),interval="1wk")
-###CHANGE FOLDER###
-past = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/saved.csv")
-past['Date'] = pd.to_datetime(past['Date'],format = '%Y-%m-%d')
 
-data = pd.merge(past, weeklyfx, on='Date', how='inner')
-# data = weeklyfx.merge(data, on='Date', how='left')
-# data = data.fillna("")
+# Calculate start and end dates
+current_date = pd.to_datetime('today')
+start_month = current_date - timedelta(weeks=6)
 
-# Add arrows based on the next_trend values
-# symbol_map = {
-#     (1, -1): ('triangle-up', 'blue'),
-#     (1, 0): ('triangle-up', 'red'),
-#     (1, 1): ('triangle-up', 'green'),
-#     (0, -1): ('triangle-down', 'blue'),
-#     (0, 0): ('triangle-down', 'green'),
-#     (0, 1): ('triangle-down', 'red')
-# }
+# Download weekly and daily Forex data
+weeklyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=current_date.strftime('%Y-%m-%d'), interval="1wk")
+dailyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=current_date.strftime('%Y-%m-%d'))
 
+# Read daily data from CSV
+daily = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/daily_predict.csv")
+daily['Date'] = pd.to_datetime(daily['Date'], format='%Y-%m-%d')
+daily = increase_decrease(daily, 'Close')
+
+# Read past data from CSV
+past = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/saved.csv")
+past['Date'] = pd.to_datetime(past['Date'], format='%Y-%m-%d')
+
+# Merge weekly data with past data
+data = pd.merge(weeklyfx, past, on='Date', how='left').fillna(-2)
+
+# Merge daily data with dailyfx data
+daily = pd.merge(dailyfx, daily, on='Date', how='left').fillna(-2)   
+
+# Create figure for weekly chart
 fig = go.Figure()
 
 # Add line chart
@@ -346,57 +343,132 @@ for i in range(len(data)):
     predicted = data['Predict'][i]
     actual = data['Actual'][i]
     
-    marker_color = 'blue'
+    marker_color = 'lightblue'
     marker_symbol = 'circle'
     shw = False
+    sz = 1
     
     if predicted in [0, 1] and actual in [-1, 0, 1]:
         marker_symbol = 'triangle-up' if predicted == 1 else 'triangle-down'
         marker_color = 'green' if predicted == actual else 'blue' if actual == -1 else 'red'
         shw = True
+        sz = 15
     
-    fig.add_annotation(
-        x=data['Date'][i],
-        y=data['Close'][i],
-        text='',
-        showarrow=shw,
-        arrowhead=0,
-        arrowsize=4,
-        arrowwidth=2,
-        arrowcolor=marker_color,
-        ax=0,
-        ay=-30 if predicted == 0 else 30
-    )
-
     fig.add_trace(go.Scatter(
         x=[data['Date'][i]],
         y=[data['Close'][i]],
         mode='markers',
-        marker=dict(symbol=marker_symbol, color=marker_color, size=10),
+        marker=dict(symbol=marker_symbol, color=marker_color, size=sz),
     ))
     
 # Hide Legends
 fig.update_traces(showlegend=False)
-# Customize the chart
+
+# Customize the chart layout
 fig.update_layout(
     xaxis=dict(title='Date'),
     yaxis=dict(title='Close Price'),
+    shapes=[
+        dict(
+            x0='2023-05-29', x1='2023-05-29', y0=0, y1=1, xref='x', yref='paper',
+            line_width=2, line_color='white'
+        )
+    ],
+    annotations=[
+        dict(
+            x='2023-05-29', y=0.05, xref='x', yref='paper',
+            showarrow=False, xanchor='left', text='Prediction'
+        )
+    ]
 )
 
+pos = past['Pos_Percent'].iloc[-1]
+neg = past['Neg_Percent'].iloc[-1]
+
+# Create figure for daily chart
+fig1 = go.Figure()
+
+# Add line chart for close price
+fig1.add_trace(go.Scatter(
+    x=daily['Date'],
+    y=daily['Close_x'],
+    mode='lines',
+    name='Close Price'
+))
+
+# Add markers for predicted and actual values
+for i in range(len(daily)):
+    date = daily['Date'][i]
+    close = daily['Close_x'][i]
+    predicted = daily['Predicted'][i]
+    actual = daily['next_trend'][i]
+
+    marker_color = 'green' if predicted == actual else 'red' if actual != -1 else 'blue'
+    marker_symbol = 'triangle-up' if predicted == 1 else 'triangle-down' if predicted != -1 else 'circle'
+
+    fig1.add_trace(go.Scatter(
+        x=[date],
+        y=[close],
+        mode='markers',
+        marker=dict(
+            symbol=marker_symbol,
+            color=marker_color,
+            size=1 if actual == -2 else 10
+        ),
+        text=f"Average News Sentiment of the Day<br>General: {round(daily['Polarity'][i], 3)}<br>Intensity: {round(daily['Compound'][i], 3)}",
+        hoverinfo='text',
+    ))
+
+# Customize the layout for daily chart
+fig1.update_layout(
+    xaxis_title='Date',
+    yaxis_title='Close Price',
+    showlegend=False,
+    shapes=[
+        dict(
+            x0='2023-05-29', x1='2023-05-29', y0=0, y1=1, xref='x', yref='paper',
+            line_width=2, line_color='white'
+        )
+    ],
+    annotations=[
+        dict(
+            x='2023-05-29', y=0.05, xref='x', yref='paper',
+            showarrow=False, xanchor='left', text='Prediction'
+        )
+    ]
+)
+
+# Set page layout to wide
 st.set_page_config(layout="wide")
-div1,div2 = st.columns([3,2], gap="medium")
-# Display the chart in Streamlit
-with div1:
+
+# Create tabs
+selected_tabs = st.selectbox("Select Tabs", ["Weekly", "Daily"], index=0)
+
+if ((current_date - data['Date'].max()).days < 7 and data['Result'].iloc[-1] == -2):
+    predict_txt = data['Result'].iloc[-2]
+else:
+    predict_txt = data['Result'].iloc[-1]
+
+# Display weekly chart and information
+if "Weekly" in selected_tabs:
     st.markdown("## Weekly Forex Price with Predicted Up/Down Trend")
-    st.plotly_chart(fig,use_container_width=True)
-with div2:
-    st.markdown(data['Result'].iloc[-1])
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown(predict_txt)
+    st.markdown(f"{pos}% of the news articles of the week has positive sentiment while {neg}% of the news articles of the week has negative sentiment.")
+    st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
     st.markdown('------')
-    st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price', unsafe_allow_html=True)
-    st.markdown('If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
 
+# Display daily chart and information
+if "Daily" in selected_tabs:
+    st.markdown("## Daily Forex Price with Predicted Up/Down Trend")
+    st.plotly_chart(fig1, use_container_width=True)
+    st.markdown(predict_txt)
+    st.markdown(f"{pos}% of the news articles of the week has positive sentiment while {neg}% of the news articles of the week has negative sentiment.")
+    st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
+    st.markdown('------')
+
+# Display news
 displayNews()
-
 
     
     
