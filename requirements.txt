@@ -9,4 +9,4 @@ requests
 yfinance
 streamlit
 plotly
-sklearn
+scikit-learn
