@@ -306,7 +306,7 @@ loadApp()
 
 # Calculate start and end dates
 current_date = pd.to_datetime('today')
-start_month = current_date - timedelta(weeks=6)
+start_month = current_date - timedelta(weeks=8)
 
 # Download weekly and daily Forex data
 weeklyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=current_date.strftime('%Y-%m-%d'), interval="1wk")
@@ -396,6 +396,20 @@ fig1.add_trace(go.Scatter(
     name='Close Price'
 ))
 
+# Add candlestick chart
+fig1.add_trace(go.Candlestick(
+    x=daily['Date'],
+    open=daily['Open_x'],
+    high=daily['High_x'],
+    low=daily['Low_x'],
+    close=daily['Close_x'],
+    increasing_line_color='light green',
+    decreasing_line_color='pink',
+    increasing_line_width=3,  # Increase line width
+    decreasing_line_width=3,
+    name='Candlestick'
+))
+
 # Add markers for predicted and actual values
 for i in range(len(daily)):
     date = daily['Date'][i]
@@ -413,9 +427,13 @@ for i in range(len(daily)):
         marker=dict(
             symbol=marker_symbol,
             color=marker_color,
-            size=1 if actual == -2 else 10
+            size=1 if actual == -2 else 15
         ),
-        text=f"Average News Sentiment of the Day<br>General: {round(daily['Polarity'][i], 3)}<br>Intensity: {round(daily['Compound'][i], 3)}",
+        text="Average News Sentiment of the Day<br>"+
+             f"General: {round(daily['Polarity'][i], 3)}<br>"+
+             f"Intensity: {round(daily['Compound'][i], 3)}<br>"+
+             f"Close Price: {round(daily['Close_x'][i],4)}<br>"+
+             f"Date: {daily['Date'][i].strftime('%Y-%m-%d')}",
         hoverinfo='text',
     ))
 
@@ -435,37 +453,40 @@ fig1.update_layout(
             x='2023-05-29', y=0.05, xref='x', yref='paper',
             showarrow=False, xanchor='left', text='Prediction'
         )
-    ]
+    ],
+    xaxis_rangeslider_visible=False
 )
 
 # Set page layout to wide
 st.set_page_config(layout="wide")
-
-# Create tabs
-selected_tabs = st.selectbox("Select Tabs", ["Weekly", "Daily"], index=0)
 
 if ((current_date - data['Date'].max()).days < 7 and data['Result'].iloc[-1] == -2):
     predict_txt = data['Result'].iloc[-2]
 else:
     predict_txt = data['Result'].iloc[-1]
 
+st.markdown(predict_txt)
+st.markdown(f"{pos}% of the news articles of the week has positive sentiment while {neg}% of the news articles of the week has negative sentiment.")
+st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
+st.markdown('------')
+
+# Create tabs
+selected_tabs = st.selectbox("Select Tabs", ["Weekly", "Daily"], index=0)
+
 # Display weekly chart and information
 if "Weekly" in selected_tabs:
-    st.markdown("## Weekly Forex Price with Predicted Up/Down Trend")
+    st.markdown("## Weekly USD/MYR Forex Price with Predicted Up/Down Trend")
     st.plotly_chart(fig, use_container_width=True)
-    st.markdown(predict_txt)
-    st.markdown(f"{pos}% of the news articles of the week has positive sentiment while {neg}% of the news articles of the week has negative sentiment.")
-    st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
-    st.markdown('------')
+    
 
 # Display daily chart and information
 if "Daily" in selected_tabs:
-    st.markdown("## Daily Forex Price with Predicted Up/Down Trend")
+    st.markdown("## Daily USD/MYR Forex Price with Predicted Up/Down Trend")
     st.plotly_chart(fig1, use_container_width=True)
-    st.markdown(predict_txt)
-    st.markdown(f"{pos}% of the news articles of the week has positive sentiment while {neg}% of the news articles of the week has negative sentiment.")
-    st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
-    st.markdown('------')
+    # st.markdown(predict_txt)
+    # st.markdown(f"{pos}% of the news articles of the week has positive sentiment while {neg}% of the news articles of the week has negative sentiment.")
+    # st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
+    # st.markdown('------')
 
 # Display news
 displayNews()
