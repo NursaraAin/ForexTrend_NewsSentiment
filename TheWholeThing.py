@@ -23,7 +23,7 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 
 ##CHANGE FOLDER###
-lda = joblib.load("ForexTrend_NewsSentiment/linear_disc_analysis.joblib")
+lda = joblib.load("linear_disc_analysis.joblib")
 # rf = joblib.load("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/random_forest.joblib")
 current_date = datetime.now()
 
@@ -219,7 +219,7 @@ def displayImportance(importance):
 
 def loadApp():
 ##CHANGE FOLDER###
-    past = pd.read_csv("ForexTrend_NewsSentiment/saved.csv")
+    past = pd.read_csv("saved.csv")
     last_date = datetime.strptime(past['PredictFor_Date'].max(),'%Y-%m-%d')
     
     if((current_date - last_date).days>=7):
@@ -236,7 +236,7 @@ def loadApp():
 ##CHANGE FOLDER###
         df = df[(df['Date'] < monday_str) & (df['Date'] >= prev_monday_str)]
         
-        df.to_csv("ForexTrend_NewsSentiment/daily_predict.csv", mode='a', header=False, index=False)
+        df.to_csv("daily_predict.csv", mode='a', header=False, index=False)
         
         result,predict = getResult(lda_predicts)
         actual = getActual(prev_monday_str, monday_str)
@@ -312,7 +312,7 @@ weeklyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=c
 dailyfx = yf.download("USDMYR=X", start="2013-01-01", end=current_date.strftime('%Y-%m-%d'))
 
 # Read daily data from CSV
-daily = pd.read_csv("ForexTrend_NewsSentiment/daily_predict.csv")
+daily = pd.read_csv("daily_predict.csv")
 daily['Date'] = pd.to_datetime(daily['Date'], format='%Y-%m-%d')
 daily = increase_decrease(daily, 'Close')
 
