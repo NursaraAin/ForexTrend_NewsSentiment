@@ -7,3 +7,5 @@ vaderSentiment
 rake_nltk
 requests
 yfinance
+streamlit
+plotly
