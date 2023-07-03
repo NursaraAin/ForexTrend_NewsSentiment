@@ -15,6 +15,7 @@ import requests
 import yfinance as yf
 from datetime import datetime,timedelta
 import textwrap
+from plotly.subplots import make_subplots
 
 # nltk.download('punkt')
 # nltk.download('stopwords')
@@ -310,7 +311,7 @@ start_month = current_date - timedelta(weeks=8)
 
 # Download weekly and daily Forex data
 weeklyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=current_date.strftime('%Y-%m-%d'), interval="1wk")
-dailyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=current_date.strftime('%Y-%m-%d'))
+dailyfx = yf.download("USDMYR=X", start="2013-01-01", end=current_date.strftime('%Y-%m-%d'))
 
 # Read daily data from CSV
 daily = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/daily_predict.csv")
@@ -325,7 +326,10 @@ past['Date'] = pd.to_datetime(past['Date'], format='%Y-%m-%d')
 data = pd.merge(weeklyfx, past, on='Date', how='left').fillna(-2)
 
 # Merge daily data with dailyfx data
+dailyfx = calculate4Price(dailyfx)
 daily = pd.merge(dailyfx, daily, on='Date', how='left').fillna(-2)   
+daily = daily[(daily['Date'] < current_date.strftime('%Y-%m-%d')) & (daily['Date'] >= start_month.strftime('%Y-%m-%d'))]
+daily = daily.reset_index(drop=True)
 
 # Create figure for weekly chart
 fig = go.Figure()
@@ -456,6 +460,47 @@ fig1.update_layout(
     ],
     xaxis_rangeslider_visible=False
 )
+# Create figure for RSI
+fig2 = go.Figure()
+
+# Add line chart
+fig2.add_trace(go.Scatter(
+    x=daily['Date'],
+    y=daily['RSI_x'],
+    mode='lines',
+    name='RSI',
+))
+# Add horizontal lines
+fig2.add_shape(
+    type='line',
+    x0=daily['Date'].min(),
+    y0=30,
+    x1=daily['Date'].max(),
+    y1=30,
+    line=dict(
+        color='red',
+        width=2,
+        dash='dash'
+    )
+)
+
+fig2.add_shape(
+    type='line',
+    x0=daily['Date'].min(),
+    y0=70,
+    x1=daily['Date'].max(),
+    y1=70,
+    line=dict(
+        color='green',
+        width=2,
+        dash='dash'
+    )
+)
+
+fig2.update_layout(
+    xaxis=dict(title='Date'),
+    yaxis=dict(title='RSI')
+    )
 
 # Set page layout to wide
 st.set_page_config(layout="wide")
@@ -488,6 +533,8 @@ if "Daily" in selected_tabs:
     # st.markdown('The <span style="color:blue">blue</span> arrow represents the predicted trend of the closing price. If the prediction is correct, the arrow will turn <span style="color:green">green</span>, otherwise it will turn <span style="color:red">red</span>', unsafe_allow_html=True)
     # st.markdown('------')
 
+st.markdown("### RSI (Relative Strength Index) Indicator")
+st.plotly_chart(fig2, use_container_width=True)
 # Display news
 displayNews()
 
