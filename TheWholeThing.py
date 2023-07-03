@@ -253,7 +253,7 @@ def loadApp():
         
         past = pd.concat([past,pd.DataFrame(save_result)])
 ##CHANGE FOLDER###
-        past.to_csv("ForexTrend_NewsSentiment/saved.csv",index=False)
+        past.to_csv("saved.csv",index=False)
 
 def displayNews():
     countries={'malaysia','united states'}
@@ -317,7 +317,7 @@ daily['Date'] = pd.to_datetime(daily['Date'], format='%Y-%m-%d')
 daily = increase_decrease(daily, 'Close')
 
 # Read past data from CSV
-past = pd.read_csv("ForexTrend_NewsSentiment/saved.csv")
+past = pd.read_csv("saved.csv")
 past['Date'] = pd.to_datetime(past['Date'], format='%Y-%m-%d')
 
 # Merge weekly data with past data
