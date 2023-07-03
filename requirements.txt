@@ -1,0 +1,9 @@
+pandas
+numpy
+joblib
+nltk
+textblob
+vaderSentiment
+rake_nltk
+requests
+yfinance
