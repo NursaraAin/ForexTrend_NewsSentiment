@@ -15,14 +15,15 @@ import requests
 import yfinance as yf
 from datetime import datetime,timedelta
 import textwrap
-from plotly.subplots import make_subplots
+import streamlit as st
+import plotly.graph_objects as go
 
-# nltk.download('punkt')
-# nltk.download('stopwords')
-# nltk.download('wordnet')
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
 
 ##CHANGE FOLDER###
-lda = joblib.load("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/linear_disc_analysis.joblib")
+lda = joblib.load("ForexTrend_NewsSentiment/linear_disc_analysis.joblib")
 # rf = joblib.load("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/random_forest.joblib")
 current_date = datetime.now()
 
@@ -218,7 +219,7 @@ def displayImportance(importance):
 
 def loadApp():
 ##CHANGE FOLDER###
-    past = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/saved.csv")
+    past = pd.read_csv("ForexTrend_NewsSentiment/saved.csv")
     last_date = datetime.strptime(past['PredictFor_Date'].max(),'%Y-%m-%d')
     
     if((current_date - last_date).days>=7):
@@ -235,7 +236,7 @@ def loadApp():
 ##CHANGE FOLDER###
         df = df[(df['Date'] < monday_str) & (df['Date'] >= prev_monday_str)]
         
-        df.to_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/daily_predict.csv", mode='a', header=False, index=False)
+        df.to_csv("ForexTrend_NewsSentiment/daily_predict.csv", mode='a', header=False, index=False)
         
         result,predict = getResult(lda_predicts)
         actual = getActual(prev_monday_str, monday_str)
@@ -252,7 +253,7 @@ def loadApp():
         
         past = pd.concat([past,pd.DataFrame(save_result)])
 ##CHANGE FOLDER###
-        past.to_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/saved.csv",index=False)
+        past.to_csv("ForexTrend_NewsSentiment/saved.csv",index=False)
 
 def displayNews():
     countries={'malaysia','united states'}
@@ -298,9 +299,6 @@ def countNews(news):
     negative_percentage = (negative_articles / total_articles) * 100
     
     return positive_percentage,negative_percentage
-    
-import streamlit as st
-import plotly.graph_objects as go
 
 # Load the app
 loadApp()
@@ -314,12 +312,12 @@ weeklyfx = yf.download("USDMYR=X", start=start_month.strftime('%Y-%m-%d'), end=c
 dailyfx = yf.download("USDMYR=X", start="2013-01-01", end=current_date.strftime('%Y-%m-%d'))
 
 # Read daily data from CSV
-daily = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/daily_predict.csv")
+daily = pd.read_csv("ForexTrend_NewsSentiment/daily_predict.csv")
 daily['Date'] = pd.to_datetime(daily['Date'], format='%Y-%m-%d')
 daily = increase_decrease(daily, 'Close')
 
 # Read past data from CSV
-past = pd.read_csv("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/saved.csv")
+past = pd.read_csv("ForexTrend_NewsSentiment/saved.csv")
 past['Date'] = pd.to_datetime(past['Date'], format='%Y-%m-%d')
 
 # Merge weekly data with past data
@@ -537,11 +535,3 @@ st.markdown("### RSI (Relative Strength Index) Indicator")
 st.plotly_chart(fig2, use_container_width=True)
 # Display news
 displayNews()
-
-    
-    
-    
-    
-
-
-
