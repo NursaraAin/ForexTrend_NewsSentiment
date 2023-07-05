@@ -24,6 +24,7 @@ nltk.download('wordnet')
 
 ##CHANGE FOLDER###
 lda = joblib.load("linear_disc_analysis.joblib")
+lg = joblib.load("lg_lda.joblib")
 # rf = joblib.load("C:/Users/nursa/source/repos/NewsScraping/ForexTrend_NewsSentiment/random_forest.joblib")
 current_date = datetime.now()
 
@@ -231,7 +232,7 @@ def loadApp():
         df,pos,neg = getNewData(monday_str,prev_monday_str)
         X=np.array(df.drop(['Date'],axis=1))
         # rf_predicts = rf.predict(X)
-        lda_predicts=lda.predict(X)
+        lda_predicts=lg.predict(lda.transform(X))
         df['Predicted']=lda_predicts
 ##CHANGE FOLDER###
         df = df[(df['Date'] < monday_str) & (df['Date'] >= prev_monday_str)]
