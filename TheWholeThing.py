@@ -132,7 +132,7 @@ def getNews(monday_str,prev_monday_str):
 
     news = nltk_textblob_Sentiment(rakeKeywords(processText(news)))
 
-    news['Date'] = pd.to_datetime(news['Date'], format='%Y-%m-%dT%H:%M:%S')
+    news['Date'] = pd.to_datetime(news['Date'], format='ISO8601')
     news['Date'] = news['Date'].dt.strftime('%Y-%m-%d')
     news['Date'] = pd.to_datetime(news['Date'], format='%Y-%m-%d')
     
