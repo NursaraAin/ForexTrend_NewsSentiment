@@ -218,7 +218,6 @@ def displayImportance(importance):
     }
     return switch.get(importance, "Invalid importance value")
 
-@st.cache_data
 def loadApp():
 ##CHANGE FOLDER###
     past = pd.read_csv("saved.csv")
