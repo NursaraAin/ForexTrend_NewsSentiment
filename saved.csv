@@ -2,4 +2,6 @@ Date,PredictFor_Date,Pos_Percent,Neg_Percent,Result,Predict,Actual
 2023-05-29,2023-06-05,79.59,20.41,## Most of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,1
 2023-06-05,2023-06-12,80.9,17.98,## Most of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,1
 2023-06-12,2023-06-19,71.13,24.74,## Most of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,1
-2023-06-19,2023-06-26,83.5,16.0,## Most of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,1
+2023-06-19,2023-06-26,83.5,16.0,## All of the news articles for the week anticipate a upward movement in the upcoming week. :chart_with_upwards_trend:,1,1
+2023-06-26,2023-07-03,81.0,18.5,## All of the news articles for the week forecasted both trends movement for upcoming week :confused:,0,0
+2023-07-03,2023-07-10,81.0,18.5,## All of the news articles for the week forecasted both trends movement for upcoming week :confused:,0,-1
